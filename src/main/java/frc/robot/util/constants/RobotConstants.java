@@ -7,8 +7,6 @@ import static edu.wpi.first.units.Units.Radians;
 
 import java.util.Set;
 
-import edu.wpi.first.apriltag.AprilTagFieldLayout;
-import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
@@ -171,8 +169,6 @@ public class RobotConstants {
     public class VisionConstants {
         public static final String LEFT_CAMERA = "LEFT_CAMERA";
         public static final String RIGHT_CAMERA = "RIGHT_CAMERA";
-
-        public static final AprilTagFieldLayout layout = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded);
 
         public static final Transform3d CAMERA_TO_ROBOT_RIGHT = new Transform3d(new Translation3d(0.127, 0.17145, 0.3175),
             new Rotation3d());

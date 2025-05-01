@@ -2,7 +2,6 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 
-import java.util.Optional;
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
@@ -28,8 +27,11 @@ import frc.robot.subsystems.superstructure.Superstructure;
 import frc.robot.subsystems.superstructure.wrist.PitchSubsystem;
 import frc.robot.subsystems.superstructure.wrist.RollSubsystem;
 import frc.robot.util.Poses;
+import frc.robot.util.Region2d;
 import frc.robot.util.Telemetry;
 import frc.robot.util.constants.TunerConstants;
+import frc.robot.util.constants.FieldConstants.AlgaePositions;
+import frc.robot.util.constants.FieldConstants.Regions;
 import frc.robot.util.constants.RobotConstants.VisionConstants;
 import frc.robot.util.constants.RobotConstants.IntakeConstants.IntakeMode;
 import frc.robot.subsystems.superstructure.SuperstructureState;
@@ -208,38 +210,27 @@ public class RobotContainer {
     }
 
     private Command algaePickup() {
-        Optional<Integer> id = visionLeft.getTargetID();
+        Region2d region = Regions.getRobotRegion(drivetrain.getState().Pose);
 
-        if (id.isEmpty()) id = visionRight.getTargetID();
-
-        if (id.isEmpty()) {
-            DriverStation.reportWarning("Attempted to pick up algae, no tag found", null);
-            return new InstantCommand();
-        } else if (VisionConstants.LOW_ALGAE_TAGS.contains(id.get())) {
-            return superstructure.applyTargetStateParallel(SuperstructureState.LOW_ALGAE_PICKUP);
-        } else if (VisionConstants.HIGH_ALGAE_TAGS.contains(id.get())) {
+        if (AlgaePositions.HIGH.getRegions().contains(region)) {
             return superstructure.applyTargetStateParallel(SuperstructureState.HIGH_ALGAE_PICKUP);
+        } else if (AlgaePositions.LOW.getRegions().contains(region)) {
+            return superstructure.applyTargetStateParallel(SuperstructureState.LOW_ALGAE_PICKUP);
         } else {
-            DriverStation.reportWarning("Attempted to pick up algae, tag not recognized", null);
+            DriverStation.reportWarning("Attempted to pick up algae, region not recognized", null);
             return new InstantCommand();
         }
     }
 
     private Command algaeClear() {
-        Optional<Integer> id = visionLeft.getTargetID();
+        Region2d region = Regions.getRobotRegion(drivetrain.getState().Pose);
 
-        if (id.isEmpty()) id = visionRight.getTargetID();
-        
-
-        if (id.isEmpty()) {
-            DriverStation.reportWarning("Attempted to clear algae, no tag found", null);
-            return new InstantCommand();
-        } else if (VisionConstants.LOW_ALGAE_TAGS.contains(id.get())) {
-            return superstructure.applyTargetStateParallel(SuperstructureState.LOW_ALGAE_CLEAR);
-        } else if (VisionConstants.HIGH_ALGAE_TAGS.contains(id.get())) {
+        if (AlgaePositions.HIGH.getRegions().contains(region)) {
             return superstructure.applyTargetStateParallel(SuperstructureState.HIGH_ALGAE_CLEAR);
+        } else if (AlgaePositions.LOW.getRegions().contains(region)) {
+            return superstructure.applyTargetStateParallel(SuperstructureState.LOW_ALGAE_CLEAR);
         } else {
-            DriverStation.reportWarning("Attempted to clear algae, tag not recognized", null);
+            DriverStation.reportWarning("Attempted to clear algae, region not recognized", null);
             return new InstantCommand();
         }
     }
@@ -254,12 +245,16 @@ public class RobotContainer {
 
     private Command leftAlign() {
         if (visionRight.getTargetID().isEmpty()) return new InstantCommand();
-        
+
+        Region2d targetRegion = Regions.getRobotRegion(drivetrain.getState().Pose);
+
+        if (targetRegion.isEmpty()) return new InstantCommand();
+
         return new DriveToPose(
             drivetrain, 
             visDrive, 
             Poses.getScorePose(
-                visionRight.getTargetID().get(),
+                targetRegion,
                 true, 
                 DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red
             )
@@ -268,12 +263,16 @@ public class RobotContainer {
 
     private Command rightAlign() {
         if (visionLeft.getTargetID().isEmpty()) return new InstantCommand();
+
+        Region2d targetRegion = Regions.getRobotRegion(drivetrain.getState().Pose);
+
+        if (targetRegion.isEmpty()) return new InstantCommand();
         
         return new DriveToPose(
             drivetrain, 
             visDrive, 
             Poses.getScorePose(
-                visionLeft.getTargetID().get(), 
+                targetRegion,
                 false, 
                 DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red
             )

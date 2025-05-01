@@ -17,6 +17,7 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.RobotContainer;
+import frc.robot.util.constants.FieldConstants;
 import frc.robot.util.constants.RobotConstants.VisionConstants;
 
 public class Vision extends SubsystemBase {
@@ -35,7 +36,7 @@ public class Vision extends SubsystemBase {
     public PIDController driveControllerX = new PIDController(VisionConstants.VX_kP,
             VisionConstants.VX_kI, VisionConstants.VX_kD);
 
-    private AprilTagFieldLayout layout = VisionConstants.layout;
+    private AprilTagFieldLayout layout = FieldConstants.layout;
 
     private boolean shouldWarn = true;
 
