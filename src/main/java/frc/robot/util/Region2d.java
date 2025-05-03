@@ -3,11 +3,15 @@ package frc.robot.util;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+
 import java.awt.geom.*;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Set;
 import org.littletonrobotics.junction.Logger;
+
+import com.pathplanner.lib.util.FlippingUtil;
 
 /**
  * This class models a region of the field. It is defined by its vertices and the transition points
@@ -18,10 +22,12 @@ public class Region2d {
   private Path2D shape;
   private HashMap<Region2d, Translation2d> transitionMap;
 
-  private boolean isEmpty = false;
+  private AtomicBoolean isEmpty = new AtomicBoolean(false);
+
+  private Translation2d[] points;
 
   public boolean isEmpty() {
-    return this.isEmpty;
+    return this.isEmpty.get();
   }
 
   /**
@@ -32,6 +38,7 @@ public class Region2d {
    */
   public Region2d(Translation2d[] points) {
     this.transitionMap = new HashMap<>();
+    this.points = points;
     this.shape = new Path2D.Double(Path2D.WIND_EVEN_ODD, points.length);
     this.shape.moveTo(points[0].getX(), points[0].getY());
 
@@ -48,7 +55,7 @@ public class Region2d {
   public Region2d() {
     this(new Translation2d[0]);
 
-    isEmpty = true;
+    isEmpty.set(true);
   }
 
   /**
@@ -90,7 +97,6 @@ public class Region2d {
    * @return if the pose is inside the region
    */
   public boolean contains(Pose2d other) {
-
     return this.shape.contains(new Point2D.Double(other.getX(), other.getY()));
   }
 
@@ -118,6 +124,19 @@ public class Region2d {
     return transitionMap.keySet();
   }
 
+  public void flip() {
+    this.shape.reset();
+
+    for (int i = 1; i < points.length; i++) {
+      Translation2d point = points[i];
+      point = FlippingUtil.flipFieldPosition(point);
+
+      this.shape.lineTo(point.getX(), point.getY());
+    }
+
+    this.shape.closePath();
+  }
+
   /**
    * Get the transition pont between this region and another region. Returns null if they aren't a
    * neighbor.
@@ -133,5 +152,9 @@ public class Region2d {
     } else {
       return null;
     }
+  }
+
+  public Translation2d[] getPoints() {
+    return points;
   }
 }

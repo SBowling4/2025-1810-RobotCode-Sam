@@ -2,6 +2,8 @@ package frc.robot;
 
 import static edu.wpi.first.units.Units.*;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import com.ctre.phoenix6.swerve.SwerveModule.DriveRequestType;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
@@ -72,10 +74,12 @@ public class RobotContainer {
 
     private final SendableChooser<Command> autoChooser;
 
+    private final AtomicBoolean left = new AtomicBoolean(true);
+
     public RobotContainer() {
         addNamedCommands();
         configureBindings();
-
+      
         autoChooser = AutoBuilder.buildAutoChooser("");
 
         SmartDashboard.putData("Auto Chooser", autoChooser);
@@ -84,6 +88,7 @@ public class RobotContainer {
         Shuffleboard.getTab("Teleoperated").addString("Superstructure State", () -> Superstructure.getCurrentSuperstructureState().toString());
         Shuffleboard.getTab("Teleoperated").addBoolean("Should Eject", RobotState.shouldEject);
         Shuffleboard.getTab("Teleoperated").addString("State Override", () -> RobotState.stateIsOverride.getAsBoolean() ? "States overriden, original controls" : "State Based Controls");
+        Shuffleboard.getTab("Teleoperated").addString("Align Mode", () -> left.get() ? "Left" : "Right");
 
         drivetrain.registerTelemetry(logger::telemeterize);
     }
@@ -105,13 +110,15 @@ public class RobotContainer {
                         .withVelocityY(-driverXbox.getLeftX() * MaxSpeed / 10)
                         .withRotationalRate(driverXbox.getRightX() * MaxAngularRate / 8)));
 
-        driverXbox.b().whileTrue(rightAlign());
-        driverXbox.x().whileTrue(leftAlign());
+        driverXbox.a().whileTrue(align());
 
         driverXbox.rightStick().onTrue(drivetrain.runOnce(() -> drivetrain.getPigeon2().setYaw(0)));
 
         //Reset heading
         driverXbox.leftBumper().onTrue(drivetrain.runOnce(() -> drivetrain.seedFieldCentric()));
+
+        driverXbox.leftTrigger().onTrue(Commands.runOnce(() -> left.set(true)));
+        driverXbox.rightTrigger().onTrue(Commands.runOnce(() -> left.set(false)));
 
         //Bindings for no pieces
         manipulatorXbox.a().and(RobotState.stateIsNone).onTrue(coralStation());
@@ -255,7 +262,7 @@ public class RobotContainer {
             visDrive, 
             Poses.getScorePose(
                 targetRegion,
-                true, 
+        true, 
                 DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red
             )
         );
@@ -273,7 +280,22 @@ public class RobotContainer {
             visDrive, 
             Poses.getScorePose(
                 targetRegion,
-                false, 
+                false,
+                DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red
+            )
+        );
+    }
+
+    private Command align() {
+        Region2d targetRegion = Regions.getRobotRegion(drivetrain.getState().Pose);
+        if (targetRegion.isEmpty()) return new InstantCommand();
+
+        return new DriveToPose(
+            drivetrain, 
+            visDrive, 
+            Poses.getScorePose(
+                targetRegion, 
+                left.get(), 
                 DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red
             )
         );

@@ -13,6 +13,8 @@ import edu.wpi.first.math.geometry.Translation3d;
 
 
 public class RobotConstants {
+    public static final int GLOBAL_CURRENT_LIMIT_BASE = 45;
+
     public class WristConstants {
         public class RollConstants {
             public static final int MOTOR_ID = 13;

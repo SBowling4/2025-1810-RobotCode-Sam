@@ -1,24 +1,23 @@
 package frc.robot.util.constants;
 
-// Copyright (c) 2025 FRC 6328
-// http://github.com/Mechanical-Advantage
-//
-// Use of this source code is governed by an MIT-style
-// license that can be found in the LICENSE file at
-// the root directory of this project.
-
 
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
 import edu.wpi.first.math.geometry.*;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import frc.robot.util.Region2d;
 
 import java.util.*;
 
+import com.pathplanner.lib.util.FlippingUtil;
+
 /**
  * Contains various field dimensions and useful reference points. All units are in meters and poses
  * have a blue alliance origin.
+ * 
+ * @author Team 6328
  */
 public class FieldConstants {
   public static final FieldType fieldType = FieldType.WELDED;
@@ -202,17 +201,17 @@ public class FieldConstants {
   }
 
   public enum AlgaePositions {
-    HIGH(Regions.REEF_ZONE_4, Regions.REEF_ZONE_2, Regions.REEF_ZONE_6),
+    HIGH(Regions.REEF_ZONE_2, Regions.REEF_ZONE_4, Regions.REEF_ZONE_6),
     LOW(Regions.REEF_ZONE_1, Regions.REEF_ZONE_3, Regions.REEF_ZONE_5);
 
     private List<Region2d> regions = new ArrayList<>();
 
     private AlgaePositions(Region2d... regions) {
-        this.regions = Arrays.asList(regions);
+      this.regions = Arrays.asList(regions);
     }
 
     public List<Region2d> getRegions() {
-        return regions;
+      return regions;
     }
   }
 
@@ -267,6 +266,14 @@ public class FieldConstants {
     public static final Region2d REEF_ZONE_5 = new Region2d(REEF_ZONE_5_VERTICIES);
     public static final Region2d REEF_ZONE_6 = new Region2d(REEF_ZONE_6_VERTICIES);
 
+    public static void flip() {
+      if (DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red) {
+        for (Region2d region : getRegions()) {
+          region.flip();
+        }
+      }
+    }
+
     public static Region2d getRegionFromFace(int face) {
       switch (face) {
         case 1:
@@ -297,6 +304,16 @@ public class FieldConstants {
             }
         }
         return new Region2d();
+    }
+
+    public static void flipRegions() {
+      if (DriverStation.getAlliance().orElse(Alliance.Blue) == Alliance.Red) {
+        for (Region2d region : getRegions()) {
+          for (Translation2d vertex : region.getPoints()) {
+            FlippingUtil.flipFieldPosition(vertex);
+          }
+        }
+      }
     }
  }
 }
