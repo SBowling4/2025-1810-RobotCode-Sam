@@ -1,16 +1,19 @@
-package frc.robot.subsystems;
+package frc.robot.subsystems.superstructure.wrist;
 
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
-import com.revrobotics.spark.config.SparkMaxConfig;
 
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import frc.robot.Constants.WristConstants.RollConstants;
+import frc.robot.util.Configs;
+import frc.robot.util.constants.RobotConstants.WristConstants.RollConstants;
 
 public class RollSubsystem extends SubsystemBase {
 
@@ -19,8 +22,6 @@ public class RollSubsystem extends SubsystemBase {
 
   public PIDController rollPIDControllerIncreasing;
   public PIDController rollPIDControllerDecreasing;
-
-  private SparkMaxConfig config;
 
   public double currentSetpoint;
 
@@ -31,10 +32,7 @@ public class RollSubsystem extends SubsystemBase {
     rollPIDControllerIncreasing = new PIDController(RollConstants.kPI, RollConstants.kII, RollConstants.kDI);
     rollPIDControllerDecreasing = new PIDController(RollConstants.kPD, RollConstants.kID, RollConstants.kDD);
 
-    config = new SparkMaxConfig();
-    config.smartCurrentLimit(40);
-
-    rollMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+    rollMotor.configure(Configs.getRollConfig(), ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
     Shuffleboard.getTab("Roll").addNumber("Roll Rad Raw", () -> encoder.get());
     Shuffleboard.getTab("Roll").addNumber("Roll Rad Adj", () -> encoder.get() - RollConstants.ENCODER_OFFSET);
@@ -53,6 +51,16 @@ public class RollSubsystem extends SubsystemBase {
 
   }
 
+  /**
+   * Get the current measurement of the roll motor in degrees.
+   *
+   * <p>
+   * This method reads the current position of the roll motor's encoder, subtracts the
+   * {@link RollConstants#ENCODER_OFFSET} to center the measurement, and then converts
+   * it to degrees using {@link Units#rotationsToDegrees(double)}.
+   *
+   * @return the current measurement of the roll motor in degrees
+   */
   public double getMeasurment() {
     double position = encoder.get() - RollConstants.ENCODER_OFFSET;
     double degrees = Units.rotationsToDegrees(position);
@@ -68,26 +76,32 @@ public class RollSubsystem extends SubsystemBase {
    * Runs pitch motor with PID
    * 
    * @param setPoint setpoint for wrist
+   * @return command to run the motor
    */
-  public void run(double setpoint) {
+  public Command run(double setpoint) {
     if (encoder.isConnected()) {
       currentSetpoint = setpoint;
       if (getMeasurment() < setpoint) {
-        // System.out.println("Rolling to: " + setpoint + " L:" + getMeasurment());
-        rollMotor.set(rollPIDControllerIncreasing.calculate(getMeasurment(), setpoint));
+        return Commands.run(() -> rollMotor.set(rollPIDControllerIncreasing.calculate(getMeasurment(), setpoint)), this)
+            .finallyDo(() -> stop());
       } else if (getMeasurment() > setpoint) {
-        // System.out.println("Rolling to: " + setpoint + " L:" + getMeasurment());
-        rollMotor.set(rollPIDControllerDecreasing.calculate(getMeasurment(), setpoint));
+        return Commands.run(() -> rollMotor.set(rollPIDControllerDecreasing.calculate(getMeasurment(), setpoint)), this)
+            .finallyDo(() -> stop());
       }
     } else {
       System.out.println("Roll Encoder Disconnected");
       stop();
       rollMotor.disable();
     }
+    return new InstantCommand();
   }
 
   public void runManual(double speed) {
     rollMotor.set(speed);
+  }
+
+  public boolean atSetpoint() {
+    return Math.abs(getMeasurment() - currentSetpoint) < RollConstants.TOLERANCE;
   }
 
   public void stop() {

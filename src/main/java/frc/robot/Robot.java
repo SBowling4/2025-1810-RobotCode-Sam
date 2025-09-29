@@ -4,38 +4,32 @@
 
 package frc.robot;
 
-import choreo.auto.AutoFactory;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.net.WebServer;
 import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+
+
 
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
 
   public final RobotContainer m_robotContainer;
 
-  public AutoFactory autoFactory;
-
-  public boolean encoderAllGood = true;
-
+  //TODO: Test the whole robot
   public Robot() {
     m_robotContainer = new RobotContainer();
+  
 
     CameraServer.startAutomaticCapture();
 
     DataLogManager.start();
 
     DriverStation.startDataLog(DataLogManager.getLog());
-
-    Shuffleboard.getTab("Teleoperated").add(CommandScheduler.getInstance());
-
-    Shuffleboard.getTab("Teleoperated").addBoolean("Encoder Panic", () -> encoderAllGood);
   }
 
   @Override
@@ -43,17 +37,12 @@ public class Robot extends TimedRobot {
     WebServer.start(5800, Filesystem.getDeployDirectory().getPath());
   }
 
-  @SuppressWarnings("static-access")
   @Override
   public void robotPeriodic() {
     CommandScheduler.getInstance().run();
-    // RobotContainer.ledSubsystem.periodic();
+    RobotState.updateState();
 
-    if (!m_robotContainer.armSubsystem.isEncoderConnected() || !m_robotContainer.extenderSubsystem.isEncoderConnected()
-        || !m_robotContainer.pitchSubsystem.isEncoderConnected()
-        || !m_robotContainer.rollSubsystem.isEncoderConnected()) {
-      encoderAllGood = false;
-    }
+
   }
 
   @Override
@@ -62,7 +51,7 @@ public class Robot extends TimedRobot {
 
   @Override
   public void disabledPeriodic() {
-    m_robotContainer.drivetrain.applyRequest(() -> m_robotContainer.brake);
+    RobotContainer.getDrivetrain().applyRequest(() -> m_robotContainer.brake);
   }
 
   @Override
@@ -71,13 +60,11 @@ public class Robot extends TimedRobot {
 
   @Override
   public void autonomousInit() {
-    m_autonomousCommand = m_robotContainer.configureAutonomus();
+    m_autonomousCommand = m_robotContainer.configureAuto();
 
     if (m_autonomousCommand != null) {
       m_autonomousCommand.schedule();
     }
-
-    m_robotContainer.basePosition();
   }
 
   @Override
@@ -93,7 +80,8 @@ public class Robot extends TimedRobot {
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
-    m_robotContainer.drivetrain.seedFieldCentric();
+
+    RobotContainer.getDrivetrain().seedFieldCentric();
   }
 
   @Override
